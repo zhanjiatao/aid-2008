@@ -1,0 +1,82 @@
+python3中实现客户端与服务端发送文件
+
+在python3中实现客户端与服务端程序交互，从客户端发送文件到服务端
+
+客户端代码：client.py
+
+#!/usr/bin/env python
+#_*_ encoding=utf-8 _*_
+
+
+import socket,sys,os
+
+ip_port = ('127.0.0.1',9999)
+sk = socket.socket()
+sk.connect(ip_port)
+
+container = {'key':'','data':''}
+while True:
+    input_data = input('path:')
+    cmd,path = input_data.split('|')
+    file_name = os.path.basename(path)
+    file_size = os.stat(path).st_size
+    sk.send((cmd+"|"+file_name+"|"+str(file_size)).encode())
+    send_size = 0
+    f = open(path,'rb')
+    Flag = True
+    while Flag:
+        if send_size + 1024 > file_size:
+            data = f.read(file_size - send_size)
+            Flag = False
+        else:
+            data = f.read(1024)
+            send_size += 1024
+        sk.send(data)
+    f.close()
+sk.close()
+
+
+服务端代码server.py
+
+#!/usr/bin/env python
+# _*_ encoding=utf-8 _*_
+
+import socketserver,os
+
+class MyServer(socketserver.BaseRequestHandler):
+    def handle(self):
+        base_path = 'E:\\\\temp'
+        conn = self.request
+        print('connected...')
+        while True:
+            pre_data = conn.recv(1024).decode()
+            #获取请求方法，文件名，文件大小
+            cmd,file_name,file_size = pre_data.split('|')
+            #已经接收文件的大小
+            recv_size = 0
+            #上传文件路径拼接
+            file_dir = os.path.join(base_path,file_name)
+            f = open(file_dir,'wb')
+            Flag = True
+            while Flag:
+                #未上传完毕
+                if int(file_size)>recv_size:
+                    data = conn.recv(1024)
+                    recv_size += len(data)
+                else:
+                    recv_size = 0
+                    Flag = False
+                    continue
+                #写入文件
+                f.write(data)
+            print('upload successed')
+            f.close()
+            
+instance = socketserver.ThreadingTCPServer(('127.0.0.1',9999),MyServer)            
+instance.serve_forever()
+先启动服务端程序，再从命令行中运行client.py
+
+E:\\python\\work\\Pythonlearn1\\src\\test2>python client.py
+path:put|E:\\DOWNLOAD\\host.txt
+path:put|E:\\DOWNLOAD\\host2.txt
+path:Traceback (most recent call last):

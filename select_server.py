@@ -5,8 +5,7 @@ IO 多路复用与非阻塞搭配
 
 重点代码 ！！！
 """
-from socket import *
-from select import select
+
 
 # 网络地址
 HOST = "0.0.0.0"
